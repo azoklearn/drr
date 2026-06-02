@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RugRefund — Check your refund</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --amber:#FFB020; --amber-deep:#E2930A; --amber-ink:#2A1C00;
+    --ink-stage:#0B130E; --fg:#FFFFFF; --fg-2:rgba(255,255,255,0.72);
+    --fg-3:rgba(255,255,255,0.50); --fg-4:rgba(255,255,255,0.34);
+    --glass:rgba(255,255,255,0.06); --glass-2:rgba(255,255,255,0.10); --glass-line:rgba(255,255,255,0.16);
+    --solana:#14F195; --teal:#144d4b; --teal-bright:#2f8d88; --teal-soft:#5fd3cd;
+    --sans:'Inter',system-ui,sans-serif; --serif:'Instrument Serif',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:var(--sans); background:var(--ink-stage); color:var(--fg); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; overflow-x:hidden; }
+
+  .stage{ position:relative; min-height:100svh; display:flex; flex-direction:column; background:var(--ink-stage); overflow:hidden; }
+  .bg-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+  .scrim{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .scrim.tone{
+    background:
+      radial-gradient(1000px 700px at 50% -10%, rgba(255,200,96,0.20), transparent 58%),
+      radial-gradient(820px 620px at 100% 110%, rgba(20,77,75,0.50), transparent 62%),
+      linear-gradient(180deg, rgba(9,17,12,0.86) 0%, rgba(9,17,12,0.62) 30%, rgba(9,17,12,0.78) 100%);
+  }
+  .scrim.grain{ opacity:0.5; mix-blend-mode:overlay; background-image:linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px); background-size:48px 48px; }
+
+  .shell{ position:relative; z-index:5; width:100%; max-width:1340px; margin:0 auto; padding:0 clamp(18px,4vw,52px); }
+
+  nav{ position:relative; z-index:6; }
+  .nav-inner{ display:flex; align-items:center; height:74px; }
+  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
+  .brand .mark{ width:34px; height:34px; border-radius:10px; background:linear-gradient(150deg,var(--amber),var(--amber-deep)); display:grid; place-items:center; box-shadow:0 2px 0 rgba(150,92,0,0.6),0 6px 18px rgba(255,176,32,0.4); }
+  .brand .wm{ font-weight:700; font-size:18.5px; letter-spacing:-0.03em; color:#fff; }
+  .brand .wm em{ font-family:var(--serif); font-style:italic; font-weight:400; letter-spacing:-0.01em; }
+  .back{ margin-left:auto; display:inline-flex; align-items:center; gap:8px; color:var(--fg-3); text-decoration:none; font-size:14px; font-weight:500; padding:9px 14px; border-radius:10px; border:1px solid var(--glass-line); background:var(--glass); transition:.16s; }
+  .back:hover{ color:#fff; background:var(--glass-2); }
+
+  .main{ flex:1; display:flex; align-items:center; justify-content:center; padding:clamp(24px,4vw,48px) 0 clamp(40px,5vw,64px); }
+  .card{
+    width:100%; max-width:560px; text-align:center;
+    background:rgba(9,18,13,0.55); backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid var(--glass-line); border-radius:26px; padding:clamp(28px,4vw,46px) clamp(22px,4vw,46px) clamp(26px,4vw,40px);
+    box-shadow:0 40px 80px -28px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.08) inset;
+  }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:9px; padding:7px 15px 7px 11px; border-radius:999px;
+    font-size:11.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+  }
+  .pill.teal{ background:rgba(20,77,75,0.30); border:1px solid rgba(47,141,136,0.5); color:var(--teal-soft); }
+  .pill.green{ background:rgba(20,241,149,0.10); border:1px solid rgba(20,241,149,0.28); color:#9af7cf; }
+  .pill .chk{ width:16px; height:16px; border-radius:50%; display:grid; place-items:center; }
+  .pill.teal .chk{ background:var(--teal-soft); }
+  .pill.green .chk{ background:var(--solana); }
+
+  .title{ margin-top:22px; font-weight:700; font-size:clamp(30px,4.4vw,44px); line-height:1.04; letter-spacing:-0.035em; color:#fff; }
+  .title em{ font-family:var(--serif); font-style:italic; font-weight:400; color:var(--amber); letter-spacing:-0.01em; }
+  .lede{ margin-top:16px; font-size:clamp(14px,1.6vw,16px); line-height:1.5; color:var(--fg-2); letter-spacing:-0.01em; }
+
+  /* address entry */
+  .addr-form{ margin-top:24px; display:flex; flex-direction:column; gap:12px; }
+  .addr-input{
+    width:100%; height:56px; border-radius:14px; background:rgba(0,0,0,0.34);
+    border:1px solid var(--glass-line); color:#fff; font-family:var(--mono); font-size:15px;
+    padding:0 18px; text-align:center; letter-spacing:-0.01em; transition:.16s;
+  }
+  .addr-input::placeholder{ color:var(--fg-4); }
+  .addr-input:focus{ outline:none; border-color:var(--amber); background:rgba(0,0,0,0.46); box-shadow:0 0 0 3px rgba(255,176,32,0.18); }
+  .addr-input.bad{ border-color:#e8765a; box-shadow:0 0 0 3px rgba(232,118,90,0.16); }
+  .err{ color:#ffa386; font-size:12.5px; min-height:15px; opacity:0; transition:.18s; text-align:center; }
+  .err.show{ opacity:1; }
+  .paste{ display:inline-flex; align-items:center; gap:6px; margin:6px auto 0; background:none; border:none; cursor:pointer; color:var(--teal-soft); font-family:var(--sans); font-size:12.5px; font-weight:500; }
+  .paste:hover{ color:#fff; }
+
+  .btn-cta{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    height:58px; border-radius:14px; border:none; cursor:pointer; font-family:var(--sans);
+    font-size:16.5px; font-weight:600; letter-spacing:-0.01em; background:var(--amber); color:var(--amber-ink);
+    box-shadow:0 3px 0 var(--amber-deep), 0 16px 34px rgba(255,176,32,0.38); transition:transform .12s ease, opacity .2s;
+  }
+  .btn-cta:hover{ transform:translateY(-1px); }
+  .btn-cta:active{ transform:translateY(1px); }
+  .btn-cta[disabled]{ cursor:default; opacity:0.75; transform:none; }
+
+  /* result */
+  #resultView{ display:none; }
+  .amount{ margin-top:8px; font-family:var(--mono); font-weight:600; letter-spacing:-0.03em; line-height:1; font-size:clamp(54px,11vw,98px); color:#fff; text-shadow:0 8px 50px rgba(255,176,32,0.35); }
+  .amount .sol{ font-size:0.36em; color:var(--amber); font-weight:600; letter-spacing:0.01em; margin-left:0.22em; vertical-align:baseline; }
+  .scanned{ margin-top:14px; font-size:13px; color:var(--fg-3); }
+  .scanned b{ font-family:var(--mono); font-weight:500; color:var(--teal-soft); }
+  .sub{ margin-top:12px; font-size:clamp(15px,1.7vw,18px); color:var(--fg); font-weight:500; letter-spacing:-0.01em; }
+  .sub em{ font-family:var(--serif); font-style:italic; font-weight:400; color:var(--amber); }
+  .btn-cta.done{ background:rgba(20,241,149,0.14); color:#aef8d6; border:1px solid rgba(20,241,149,0.4); box-shadow:none; }
+
+  /* safety */
+  .safe{ margin-top:24px; display:flex; gap:13px; text-align:left; align-items:flex-start; background:rgba(20,77,75,0.18); border:1px solid rgba(47,141,136,0.42); border-radius:15px; padding:15px 17px; }
+  .safe .sh{ flex-shrink:0; width:34px; height:34px; border-radius:10px; background:rgba(20,77,75,0.45); display:grid; place-items:center; color:var(--teal-soft); }
+  .safe .st{ font-size:13.5px; font-weight:600; color:#fff; letter-spacing:-0.01em; }
+  .safe .sb{ font-size:12.5px; line-height:1.5; color:var(--fg-3); margin-top:3px; }
+  .reassure{ margin-top:16px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px 16px; }
+  .reassure span{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--fg-3); }
+  .reassure span svg{ color:var(--teal-soft); flex-shrink:0; }
+  .legal{ margin-top:22px; font-size:11px; line-height:1.5; color:var(--fg-4); max-width:440px; margin-left:auto; margin-right:auto; }
+
+  @media (max-width:560px){ .nav-inner{ height:62px; } }
+  @media (prefers-reduced-motion:reduce){ * { animation:none !important; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <video class="bg-video" autoplay muted loop playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_094440_a3592600-bd1e-49e5-9bce-a73662061d83.mp4" type="video/mp4">
+  </video>
+  <div class="scrim tone"></div>
+  <div class="scrim grain"></div>
+
+  <nav>
+    <div class="shell nav-inner">
+      <a class="brand" href="RugRefund Hero.html">
+        <span class="mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 13.5V4.2M9 4.2 5 8.2M9 4.2l4 4" stroke="#1A1205" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="wm">Rug<em>Refund</em></span>
+      </a>
+      <a class="back" href="RugRefund Hero.html">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 3.5 5 7l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </a>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="shell" style="display:flex; justify-content:center;">
+      <div class="card">
+
+        <!-- ── STEP 1 — address entry ── -->
+        <div id="inputView">
+          <span class="pill teal"><span class="chk"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="#04130b" stroke-width="1.6"/><path d="M6 4v2.4l1.6 1" stroke="#04130b" stroke-width="1.4" stroke-linecap="round"/></svg></span>Refund checker</span>
+          <h1 class="title">Check your <em>Solana</em> refund</h1>
+          <p class="lede">Paste your Solana wallet address and we'll scan its on-chain history for pump.fun rug-pull losses.</p>
+
+          <form class="addr-form" id="addrForm" autocomplete="off" novalidate>
+            <input id="addrInput" class="addr-input" type="text" inputmode="text" spellcheck="false"
+                   placeholder="Your Solana address — e.g. 7xKp…q4F2" aria-label="Solana wallet address">
+            <button class="btn-cta" type="submit" id="checkBtn">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.4" stroke="currentColor" stroke-width="1.8"/><path d="m12.2 12.2 3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span id="checkLabel">Check my refund</span>
+            </button>
+          </form>
+          <p class="err" id="addrErr">Enter a valid Solana wallet address (32–44 characters).</p>
+
+          <div class="safe">
+            <span class="sh"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2 4 4v4c0 3.3 2.3 5.3 5 7 2.7-1.7 5-3.7 5-7V4L9 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m6.6 9 1.7 1.7L11.6 7.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div>
+              <div class="st">It's completely safe</div>
+              <div class="sb">Your address is only used to look up your public on-chain history. RugRefund <strong>never moves your funds</strong> and <strong>never asks for your seed phrase or private keys</strong>.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STEP 2 — result ── -->
+        <div id="resultView">
+          <span class="pill green"><span class="chk"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5.2 4 7.2 8 3" stroke="#04130b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Eligible refund found</span>
+          <p class="lede">Scan complete — based on your on-chain activity, you can recover</p>
+          <div class="amount"><span id="amt">0.000</span><span class="sol">SOL</span></div>
+          <p class="scanned">Matched wallet <b id="scannedAddr">7xKp…q4F2</b></p>
+          <p class="sub">Connect your wallet to <em>claim it.</em></p>
+
+          <button class="btn-cta" id="connectBtn" type="button">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="11" rx="2.4" stroke="currentColor" stroke-width="1.7"/><path d="M12 9.5h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M2 7h11.5" stroke="currentColor" stroke-width="1.7"/></svg>
+            <span id="connectLabel">Connect wallet to claim</span>
+          </button>
+
+          <div class="reassure">
+            <span><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M3 7.2 5.6 9.8 11 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Read-only access</span>
+            <span><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M3 7.2 5.6 9.8 11 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>No approvals required</span>
+            <span><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M3 7.2 5.6 9.8 11 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Disconnect anytime</span>
+          </div>
+
+          <p class="legal">Refunds depend on available community-fund balance and are reviewed case by case. Estimated amounts are not a guarantee of payout.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="wallet.js"></script>
+<script>
+(function(){
+  const form  = document.getElementById('addrForm');
+  const input = document.getElementById('addrInput');
+  const err   = document.getElementById('addrErr');
+  const btn   = document.getElementById('checkBtn');
+  const label = document.getElementById('checkLabel');
+  const inputView  = document.getElementById('inputView');
+  const resultView = document.getElementById('resultView');
+
+  // base58-ish Solana address: 32–44 chars, no 0 O I l
+  const SOL = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  const trunc = a => a.length > 12 ? a.slice(0,4) + '\u2026' + a.slice(-4) : a;
+
+  input.addEventListener('input', () => { input.classList.remove('bad'); err.classList.remove('show'); });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const val = input.value.trim();
+    if(!SOL.test(val)){
+      input.classList.add('bad'); err.classList.add('show'); input.focus();
+      return;
+    }
+    // fake on-chain scan
+    btn.setAttribute('disabled','');
+    label.textContent = 'Scanning on-chain…';
+    setTimeout(function(){
+      let ms = Math.floor(80 + Math.random()*1910);   // 0.080 – 1.989 SOL
+      if(ms % 10 === 0) ms += 1 + Math.floor(Math.random()*8);  // avoid round amounts
+      document.getElementById('amt').textContent = (ms/1000).toFixed(3);
+      document.getElementById('scannedAddr').textContent = trunc(val);
+      inputView.style.display = 'none';
+      resultView.style.display = 'block';
+    }, 1300);
+  });
+
+  // ── Connexion wallet (Phantom · lecture seule) ──────────────────────
+  // Logique externalisée dans wallet.js (window.SolanaWallet).
+  const cbtn   = document.getElementById('connectBtn');
+  const clabel = document.getElementById('connectLabel');
+  window.SolanaWallet.setupWalletButton(cbtn, clabel);
+})();
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#0B130E"/><circle cx="50" cy="50" r="26" fill="none" stroke="#FFB020" stroke-width="5"/><path d="M40 50l7 7 14-15" stroke="#FFB020" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</template>
+</body>
+</html>
